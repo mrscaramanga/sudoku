@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sudoku</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#9ca3af; --cell-bg:#071021;
+      --correct:#10b981; --wrong:#ef4444; --given:#a3a3a3;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#071429 0%, #071126 100%); color:#e6eef8; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px}
+    .app{width:960px; max-width:96vw}
+    header{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px}
+    h1{font-size:20px; margin:0; letter-spacing:0.6px}
+    .controls{display:flex; gap:8px; align-items:center}
+    select, button{background:var(--card); border:1px solid rgba(255,255,255,0.04); color:var(--accent); padding:8px 10px; border-radius:8px; cursor:pointer}
+    button.secondary{background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.03)}
+    .board-wrap{display:flex; gap:18px}
+    .board{background:var(--card); padding:12px; border-radius:12px; box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    .grid{display:grid; grid-template-columns: repeat(9,48px); grid-template-rows: repeat(9,48px); gap:4px}
+    .cell{width:48px; height:48px; display:flex; align-items:center; justify-content:center; background:var(--cell-bg); border-radius:8px; font-weight:600; font-size:18px; cursor:pointer; color:#cfeefe}
+    .cell.given{color:var(--given); font-weight:700}
+    .cell input{width:100%; height:100%; border:0; background:transparent; color:inherit; text-align:center; font-weight:700; font-size:18px}
+    /* thick lines for 3x3 blocks */
+    .cell.border-right{border-right:2px solid rgba(255,255,255,0.06)}
+    .cell.border-bottom{border-bottom:2px solid rgba(255,255,255,0.06)}
+    .cell.wrong{background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06))}
+    .cell.highlight{outline:2px solid rgba(125,211,252,0.12)}
+    aside{width:300px; max-width:38vw}
+    .panel{background:var(--card); padding:12px; border-radius:12px;}
+    .panel h3{margin:0 0 8px 0; font-size:14px; color:var(--muted)}
+    .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+    .numpad{display:grid; grid-template-columns: repeat(3,44px); gap:8px; margin-top:12px}
+    .num{background:transparent; border:1px solid rgba(255,255,255,0.04); padding:8px; border-radius:8px; cursor:pointer}
+    .status{margin-top:12px; color:var(--muted); font-size:13px}
+    .small{font-size:13px; color:var(--muted)}
+    footer{margin-top:12px; color:var(--muted); font-size:13px}
+    @media(max-width:880px){.board-wrap{flex-direction:column} aside{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Sudoku — Play</h1>
+      <div class="controls">
+        <label class="small">Difficulty
+          <select id="difficulty">
+            <option value="36">Easy</option>
+            <option value="46" selected>Medium</option>
+            <option value="52">Hard</option>
+          </select>
+        </label>
+        <button id="newBtn">New Puzzle</button>
+        <button id="hintBtn">Hint</button>
+        <button id="solveBtn" class="secondary">Solve</button>
+      </div>
+    </header>
+
+    <div class="board-wrap">
+      <div class="board">
+        <div id="grid" class="grid" aria-label="sudoku grid"></div>
+      </div>
+
+      <aside>
+        <div class="panel">
+          <h3>How to play</h3>
+          <div class="small">Fill each row, column and 3x3 box with numbers 1 to 9. Click a cell and choose a number or use keyboard (1–9). Wrong numbers highlight red.</div>
+          <div class="actions">
+            <button id="checkBtn">Check</button>
+            <button id="eraseBtn">Erase</button>
+          </div>
+
+          <h3 style="margin-top:12px">Number pad</h3>
+          <div class="numpad" id="numpad"></div>
+
+          <div class="status" id="status">Ready</div>
+          <footer><a href="https://linktr.ee/wangsaguna">linktr.ee/wangsaguna</a></footer>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Sudoku generator + solver (backtracking)
+    function makeEmptyBoard(){return Array.from({length:9},()=>Array(9).fill(0))}
+
+    function copyBoard(b){return b.map(r=>r.slice())}
+
+    function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
+
+    function isSafe(board,row,col,num){
+      for(let i=0;i<9;i++){if(board[row][i]===num) return false; if(board[i][col]===num) return false}
+      const sr = Math.floor(row/3)*3, sc = Math.floor(col/3)*3
+      for(let r=sr;r<sr+3;r++) for(let c=sc;c<sc+3;c++) if(board[r][c]===num) return false
+      return true
+    }
+
+    function solveBoard(board){
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          if(board[r][c]===0){
+            for(let n=1;n<=9;n++){
+              if(isSafe(board,r,c,n)){
+                board[r][c]=n
+                if(solveBoard(board)) return true
+                board[r][c]=0
+              }
+            }
+            return false
+          }
+        }
+      }
+      return true
+    }
+
+    // generate a complete board by filling row by row with randomized numbers
+    function generateComplete(){
+      const board = makeEmptyBoard()
+      const nums = [1,2,3,4,5,6,7,8,9]
+      function fillCell(r,c){
+        if(r===9) return true
+        const nr = c===8 ? r+1 : r
+        const nc = c===8 ? 0 : c+1
+        const shuffled = shuffle(nums.slice())
+        for(const n of shuffled){
+          if(isSafe(board,r,c,n)){
+            board[r][c]=n
+            if(fillCell(nr,nc)) return true
+            board[r][c]=0
+          }
+        }
+        return false
+      }
+      fillCell(0,0)
+      return board
+    }
+
+    function removeCells(board, removals){
+      const b = copyBoard(board)
+      const positions=[]
+      for(let r=0;r<9;r++) for(let c=0;c<9;c++) positions.push([r,c])
+      shuffle(positions)
+      let removed=0
+      for(const [r,c] of positions){
+        const backup=b[r][c]
+        b[r][c]=0
+        // ensure unique solution: try solving and count solutions up to 2
+        const count = countSolutions(copyBoard(b),2)
+        if(count===1){ removed++; }
+        else b[r][c]=backup
+        if(removed>=removals) break
+      }
+      return b
+    }
+
+    // count solutions (backtracking) with early exit
+    function countSolutions(board, limit){
+      let solutions=0
+      function helper(){
+        if(solutions>=limit) return
+        for(let r=0;r<9;r++){
+          for(let c=0;c<9;c++){
+            if(board[r][c]===0){
+              for(let n=1;n<=9;n++){
+                if(isSafe(board,r,c,n)){
+                  board[r][c]=n
+                  helper()
+                  board[r][c]=0
+                }
+              }
+              return
+            }
+          }
+        }
+        solutions++
+      }
+      helper()
+      return solutions
+    }
+
+    // UI and interactions
+    const gridEl = document.getElementById('grid')
+    const difficultyEl = document.getElementById('difficulty')
+    const newBtn = document.getElementById('newBtn')
+    const hintBtn = document.getElementById('hintBtn')
+    const solveBtn = document.getElementById('solveBtn')
+    const checkBtn = document.getElementById('checkBtn')
+    const eraseBtn = document.getElementById('eraseBtn')
+    const statusEl = document.getElementById('status')
+    const numpad = document.getElementById('numpad')
+
+    let solutionBoard = null
+    let puzzleBoard = null
+    let given = null
+    let selected = null
+
+    function buildGrid(){
+      gridEl.innerHTML=''
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          const cell = document.createElement('div')
+          cell.className='cell'
+          // thick borders
+          if((c+1)%3===0 && c!==8) cell.classList.add('border-right')
+          if((r+1)%3===0 && r!==8) cell.classList.add('border-bottom')
+
+          cell.dataset.r=r; cell.dataset.c=c
+          const input = document.createElement('input')
+          input.type='text'; input.maxLength=1; input.inputMode='numeric'
+          input.autocomplete='off'
+          input.addEventListener('focus',()=>selectCell(cell))
+          input.addEventListener('input',(e)=>onInput(e,cell))
+          cell.appendChild(input)
+          cell.addEventListener('click',()=>{ input.focus() })
+          gridEl.appendChild(cell)
+        }
+      }
+      // setup numpad
+      numpad.innerHTML=''
+      for(let i=1;i<=9;i++){
+        const b=document.createElement('button')
+        b.className='num'; b.textContent=i
+        b.addEventListener('click',()=>fillNumber(i))
+        numpad.appendChild(b)
+      }
+      const clear=document.createElement('button'); clear.className='num'; clear.textContent='C'; clear.addEventListener('click',eraseCell)
+      numpad.appendChild(clear)
+    }
+
+    function selectCell(cell){
+      clearHighlights()
+      selected = cell
+      cell.classList.add('highlight')
+      const r=+cell.dataset.r, c=+cell.dataset.c
+      highlightPeers(r,c)
+    }
+
+    function clearHighlights(){
+      document.querySelectorAll('.cell').forEach(x=>x.classList.remove('highlight'))
+    }
+
+    function highlightPeers(r,c){
+      for(const el of document.querySelectorAll('.cell')){
+        const rr=+el.dataset.r, cc=+el.dataset.c
+        if(rr===r || cc===c || (Math.floor(rr/3)===Math.floor(r/3) && Math.floor(cc/3)===Math.floor(c/3))){
+          el.classList.add('highlight')
+        }
+      }
+    }
+
+    function onInput(e,cell){
+      const val = e.target.value.replace(/[^1-9]/g,'')
+      e.target.value = val
+      const r=+cell.dataset.r, c=+cell.dataset.c
+      if(val===''){
+        puzzleBoard[r][c]=0; cell.classList.remove('wrong')
+      } else {
+        puzzleBoard[r][c]=Number(val)
+        // if conflicts with solutionBoard and solution known
+        if(solutionBoard && solutionBoard[r][c]!==puzzleBoard[r][c]){
+          cell.classList.add('wrong')
+        } else cell.classList.remove('wrong')
+      }
+      updateStatus()
+    }
+
+    function fillNumber(n){
+      if(!selected) return
+      const input=selected.querySelector('input')
+      if(given[+selected.dataset.r][+selected.dataset.c]) return
+      input.value = String(n)
+      input.dispatchEvent(new Event('input'))
+    }
+
+    function eraseCell(){
+      if(!selected) return
+      const input=selected.querySelector('input')
+      if(given[+selected.dataset.r][+selected.dataset.c]) return
+      input.value=''; input.dispatchEvent(new Event('input'))
+    }
+
+    function render(board, givens){
+      const cells = document.querySelectorAll('.cell')
+      cells.forEach(cell=>{
+        const r=+cell.dataset.r, c=+cell.dataset.c
+        const inp = cell.querySelector('input')
+        const v = board[r][c]
+        inp.value = v===0 ? '' : String(v)
+        if(givens && givens[r][c]){
+          cell.classList.add('given')
+          inp.disabled = true
+        } else {
+          cell.classList.remove('given')
+          inp.disabled = false
+        }
+        cell.classList.remove('wrong')
+      })
+    }
+
+    function updateStatus(){
+      // check if solved
+      let filled=true; let wrong=false
+      for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+        const val = puzzleBoard[r][c]
+        if(val===0) filled=false
+        if(solutionBoard && val!==0 && solutionBoard[r][c]!==val) wrong=true
+      }
+      if(filled && !wrong) statusEl.textContent='Congratulations — solved!'
+      else if(wrong) statusEl.textContent='There are mistakes.'
+      else statusEl.textContent='Keep going...'
+    }
+
+    function checkMistakes(){
+      // highlight wrong based on solutionBoard
+      if(!solutionBoard) return
+      document.querySelectorAll('.cell').forEach(cell=>{
+        const r=+cell.dataset.r, c=+cell.dataset.c
+        const v = puzzleBoard[r][c]
+        if(v!==0 && solutionBoard[r][c]!==v) cell.classList.add('wrong')
+        else cell.classList.remove('wrong')
+      })
+    }
+
+    function hint(){
+      // find an empty or wrong cell and fill with correct number
+      for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+        if(puzzleBoard[r][c]===0){
+          puzzleBoard[r][c]=solutionBoard[r][c]
+          render(puzzleBoard, given)
+          updateStatus(); return
+        }
+      }
+      // no empty, try fix wrong
+      for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+        if(puzzleBoard[r][c]!==solutionBoard[r][c]){
+          puzzleBoard[r][c]=solutionBoard[r][c]
+          render(puzzleBoard, given)
+          updateStatus(); return
+        }
+      }
+    }
+
+    function solve(){
+      puzzleBoard = copyBoard(solutionBoard)
+      render(puzzleBoard, given)
+      updateStatus()
+    }
+
+    function newPuzzle(removals){
+      statusEl.textContent='Generating...'
+      setTimeout(()=>{
+        const complete = generateComplete()
+        solutionBoard = copyBoard(complete)
+        const puzzle = removeCells(complete, removals)
+        puzzleBoard = copyBoard(puzzle)
+        given = puzzle.map(r=>r.map(v=>v!==0))
+        render(puzzleBoard, given)
+        updateStatus()
+      },50)
+    }
+
+    // init
+    buildGrid()
+    newBtn.addEventListener('click',()=>newPuzzle(Number(difficultyEl.value)))
+    hintBtn.addEventListener('click',()=>hint())
+    solveBtn.addEventListener('click',()=>solve())
+    checkBtn.addEventListener('click',()=>checkMistakes())
+    eraseBtn.addEventListener('click',()=>eraseCell())
+
+    // keyboard support
+    document.addEventListener('keydown',(e)=>{
+      if(!selected) return
+      if(e.key>='1' && e.key<='9'){ fillNumber(Number(e.key)) }
+      if(e.key==='Backspace' || e.key==='Delete') eraseCell()
+      if(e.key==='ArrowRight') moveSelection(0,1)
+      if(e.key==='ArrowLeft') moveSelection(0,-1)
+      if(e.key==='ArrowUp') moveSelection(-1,0)
+      if(e.key==='ArrowDown') moveSelection(1,0)
+    })
+
+    function moveSelection(dr,dc){
+      if(!selected) return
+      let r=+selected.dataset.r, c=+selected.dataset.c
+      r = (r+dr+9)%9; c=(c+dc+9)%9
+      const idx = r*9 + c
+      const cell = document.querySelectorAll('.cell')[idx]
+      const input = cell.querySelector('input')
+      input.focus()
+    }
+
+    // start first puzzle (medium default)
+    newPuzzle(Number(difficultyEl.value))
+
+  </script>
+</body>
+</html>
