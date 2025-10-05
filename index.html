@@ -4,19 +4,24 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sudoku by Alexandearx</title>
+  <link rel="icon" type="image/x-icon" href="https://ugc.production.linktr.ee/6ed9f0d7-9757-49e2-9e49-c22ab025614f_Gemini-Generated-Image-fs27ovfs27ovfs27.png?io=true&size=avatar-v3_0">
   <style>
     :root{
-      --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#9ca3af; --cell-bg:#071021;
+      --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#9ca3af; --cell-bg:#000000;
       --correct:#10b981; --wrong:#ef4444; --given:#a3a3a3;
     }
+
     *{box-sizing:border-box}
-    body{margin:0; font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#071429 0%, #071126 100%); color:#e6eef8; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px}
+    a{color: gold;}
+    a:hover{color: red;}
+    body{margin:0; font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#000000 0%, #071126 100%); color:#e6eef8; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px}
     .app{width:960px; max-width:96vw}
     header{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px}
     h1{font-size:20px; margin:0; letter-spacing:0.6px}
     .controls{display:flex; gap:8px; align-items:center}
     select, button{background:var(--card); border:1px solid rgba(255,255,255,0.04); color:var(--accent); padding:8px 10px; border-radius:8px; cursor:pointer}
     button.secondary{background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.03)}
+    button:hover{background-color: rgb(43, 137, 226); color: #000000;}
     .board-wrap{display:flex; gap:18px}
     .board{background:var(--card); padding:12px; border-radius:12px; box-shadow:0 6px 20px rgba(2,6,23,0.6)}
     .grid{display:grid; grid-template-columns: repeat(9,48px); grid-template-rows: repeat(9,48px); gap:4px}
@@ -26,14 +31,14 @@
     /* thick lines for 3x3 blocks */
     .cell.border-right{border-right:2px solid rgba(255,255,255,0.06)}
     .cell.border-bottom{border-bottom:2px solid rgba(255,255,255,0.06)}
-    .cell.wrong{background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06))}
-    .cell.highlight{outline:2px solid rgba(125,211,252,0.12)}
+    .cell.wrong{background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(243, 19, 19, 0.295))}
+    .cell.highlight{outline:2px solid rgba(255, 0, 255, 0.281)}
     aside{width:300px; max-width:38vw}
     .panel{background:var(--card); padding:12px; border-radius:12px;}
     .panel h3{margin:0 0 8px 0; font-size:14px; color:var(--muted)}
     .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
     .numpad{display:grid; grid-template-columns: repeat(3,44px); gap:8px; margin-top:12px}
-    .num{background:transparent; border:1px solid rgba(255,255,255,0.04); padding:8px; border-radius:8px; cursor:pointer}
+    .num{background:transparent; border:1px solid rgba(0, 153, 255, 0.336); padding:8px; border-radius:8px; cursor:pointer}
     .status{margin-top:12px; color:var(--muted); font-size:13px}
     .small{font-size:13px; color:var(--muted)}
     footer{margin-top:12px; color:var(--muted); font-size:13px}
@@ -43,7 +48,8 @@
 <body>
   <div class="app">
     <header>
-      <h1>Solve this sudoku</h1>
+      <h1>Top Sudoku Solver</h1> 
+            <div id="timer">00:00</div><br>
       <div class="controls">
         <label class="small">Difficulty
           <select id="difficulty">
@@ -69,18 +75,18 @@
           <div class="small">Fill each row, column and 3x3 box with numbers 1 to 9. Click a cell and choose a number or use keyboard (1–9). Wrong numbers highlight red.</div>
           <div class="actions">
             <button id="checkBtn">Check</button>
-            <button id="eraseBtn">Erase</button>
+            <button id="eraseBtn">Erase</button>   
           </div>
 
-          <h3 style="margin-top:12px">Number pad</h3>
+          <h3 style="margin-top:12px">Numpad</h3>
           <div class="numpad" id="numpad"></div>
 
           <div class="status" id="status">Ready</div>
-          <footer><a href="https://linktr.ee/wangsaguna">linktr.ee/wangsaguna</a></footer>
+          <footer><a href="https://linktr.ee/wangsaguna">More on Linktree</a></footer>
         </div>
       </aside>
     </div>
-  </div>
+  </div> 
 
   <script>
     // Sudoku generator + solver (backtracking)
@@ -190,13 +196,64 @@
     const eraseBtn = document.getElementById('eraseBtn')
     const statusEl = document.getElementById('status')
     const numpad = document.getElementById('numpad')
+    const timerEl = document.getElementById('timer')
+    const exportBtn = document.getElementById('exportBtn')
+    const historyBtn = document.getElementById('historyBtn')
+
+    const modal = document.getElementById('modal')
+    const modalTitle = document.getElementById('modalTitle')
+    const modalContent = document.getElementById('modalContent')
+    const closeModal = document.getElementById('closeModal')
+    const copyModal = document.getElementById('copyModal')
 
     let solutionBoard = null
     let puzzleBoard = null
     let given = null
     let selected = null
 
+    // timer
+    let timerInterval = null
+    let startTime = null
+    let elapsedBefore = 0
+    let running = false
+
+    function startTimer(){
+      if(running) return
+      running = true
+      startTime = Date.now()
+      timerInterval = setInterval(()=>{
+        const diff = Date.now() - startTime + elapsedBefore
+        timerEl.textContent = formatTime(diff)
+      },250)
+    }
+    function stopTimer(){
+      if(!running) return
+      running = false
+      elapsedBefore = Date.now() - startTime + elapsedBefore
+      clearInterval(timerInterval)
+      timerInterval = null
+    }
+    function resetTimer(){
+      clearInterval(timerInterval)
+      timerInterval = null
+      startTime = null
+      elapsedBefore = 0
+      running = false
+      timerEl.textContent = '00:00'
+    }
+
+    function formatTime(ms){
+      const total = Math.floor(ms/1000)
+      const m = Math.floor(total/60).toString().padStart(2,'0')
+      const s = (total%60).toString().padStart(2,'0')
+      return `${m}:${s}`
+    }
+
+
     function buildGrid(){
+      unlockBoard()
+      resetTimer()
+      startTimer()
       gridEl.innerHTML=''
       for(let r=0;r<9;r++){
         for(let c=0;c<9;c++){
@@ -216,7 +273,7 @@
           cell.addEventListener('click',()=>{ input.focus() })
           gridEl.appendChild(cell)
         }
-      }
+      } 
       // setup numpad
       numpad.innerHTML=''
       for(let i=1;i<=9;i++){
@@ -298,6 +355,14 @@
         cell.classList.remove('wrong')
       })
     }
+    function lockBoard(){ 
+      document.querySelectorAll('.cell').forEach(cell=>{ cell.querySelector('input').disabled = true }) 
+      document.querySelectorAll('.num').forEach(b=>b.disabled=true) 
+    }
+    function unlockBoard(){ 
+      document.querySelectorAll('.cell').forEach(cell=>{ const r=+cell.dataset.r, c=+cell.dataset.c; const inp = cell.querySelector('input'); inp.disabled = given[r][c]; }) 
+      document.querySelectorAll('.num').forEach(b=>b.disabled=false) 
+    }
 
     function updateStatus(){
       // check if solved
@@ -307,7 +372,11 @@
         if(val===0) filled=false
         if(solutionBoard && val!==0 && solutionBoard[r][c]!==val) wrong=true
       }
-      if(filled && !wrong) statusEl.textContent='Congratulations — solved!'
+      if(filled && !wrong) {
+        statusEl.textContent='Congratulations — solved!' 
+        stopTimer() 
+        lockBoard();
+    }
       else if(wrong) statusEl.textContent='There are mistakes.'
       else statusEl.textContent='Keep going...'
     }
@@ -349,6 +418,8 @@
     }
 
     function newPuzzle(removals){
+        resetTimer()
+        startTimer()
       statusEl.textContent='Generating...'
       setTimeout(()=>{
         const complete = generateComplete()
@@ -360,7 +431,7 @@
         updateStatus()
       },50)
     }
- 
+
     // init
     buildGrid()
     newBtn.addEventListener('click',()=>newPuzzle(Number(difficultyEl.value)))
