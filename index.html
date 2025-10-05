@@ -315,7 +315,7 @@
        // 1. Highlight sel yang dipilih dan sel rekanannya (peers)
         cell.classList.add('highlight')
         const r=+cell.dataset.r, c=+cell.dataset.c
-      //  highlightPeers(r,c) // Highlight baris, kolom, dan blok
+        highlightPeers(r,c) // Highlight baris, kolom, dan blok
       const selectedValue = Number(cell.querySelector('input').value)
       if (selectedValue !== 0) {
           highlightSameNumber(selectedValue);
