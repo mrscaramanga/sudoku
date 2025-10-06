@@ -7,47 +7,114 @@
   <link rel="icon" type="image/x-icon" href="https://ugc.production.linktr.ee/6ed9f0d7-9757-49e2-9e49-c22ab025614f_Gemini-Generated-Image-fs27ovfs27ovfs27.png?io=true&size=avatar-v3_0">
   <style>
     :root{
-      --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#9ca3af; --cell-bg:#000000;
-      --correct:#10b981; --wrong:#ef4444; --given:#a3a3a3;
+        --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#9ca3af; --cell-bg:#000000;
+        --correct:#10b981; --wrong:#ef4444; --given:#a3a3a3;
     }
 
     *{box-sizing:border-box}
-    a{color: gold;}
+    a{color: gold; font-size: small;}
     a:hover{color: red;}
+    /* BODY: Tetapkan centering untuk desktop */
     body{margin:0; font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#000000 0%, #071126 100%); color:#e6eef8; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px}
-    .app{width:960px; max-width:96vw}
-    header{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px}
+    .app{width:960px; max-width:96vw; /* Batasi lebar di desktop/layar besar */}
+    
+    header{display:flex; flex-wrap: wrap; align-items:center; justify-content:space-between; margin-bottom:18px; gap: 10px;}
     h1{font-size:20px; margin:0; letter-spacing:0.6px}
     .controls{display:flex; gap:8px; align-items:center}
-    select, button{background:var(--card); border:1px solid rgba(255,255,255,0.04); color:var(--accent); padding:8px 10px; border-radius:8px; cursor:pointer}
+    select, button{background:var(--card); border:1px solid rgba(255,255,255,0.04); color:var(--accent); padding:8px 10px; border-radius:8px; cursor:pointer; font-size: 14px;}
     button.secondary{background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.03)}
     button:hover{background-color: rgb(43, 137, 226); color: #000000;}
+    
     .board-wrap{display:flex; gap:18px}
-    .board{background:var(--card); padding:12px; border-radius:12px; box-shadow:0 6px 20px rgba(2,6,23,0.6)}
-    .grid{display:grid; grid-template-columns: repeat(9,48px); grid-template-rows: repeat(9,48px); gap:4px}
-    .cell{width:48px; height:48px; display:flex; align-items:center; justify-content:center; background:var(--cell-bg); border-radius:8px; font-weight:600; font-size:18px; cursor:pointer; color:#cfeefe}
+    .board{background:var(--card); padding:12px; border-radius:12px; box-shadow:0 6px 20px rgba(2,6,23,0.6); flex-shrink: 0;}
+    
+    /* SUDOKU GRID - DEFAULT (DESKTOP) MENGGUNAKAN PX */
+    .grid{
+        display:grid; 
+        grid-template-columns: repeat(9, 48px); /* Kembali ke ukuran tetap 48px untuk Desktop */
+        grid-template-rows: repeat(9, 48px); /* Kembali ke ukuran tetap 48px untuk Desktop */
+        gap: 4px; 
+    }
+    .cell{
+        width: 48px; 
+        height: 48px; 
+        display:flex; align-items:center; justify-content:center; background:var(--cell-bg); 
+        border-radius:8px; font-weight:600; 
+        font-size: 18px; /* Ukuran font tetap */
+        cursor:pointer; color:#cfeefe
+    }
     .cell.given{color:var(--given); font-weight:700}
-    .cell input{width:100%; height:100%; border:0; background:transparent; color:inherit; text-align:center; font-weight:700; font-size:18px}
+    .cell input{width:100%; height:100%; border:0; background:transparent; color:inherit; text-align:center; font-weight:700; font-size: inherit;}
     .cell input:focus{outline:none; caret-color:transparent;} 
     .cell.given input:focus{outline:none;} 
-    /* thick lines for 3x3 blocks */
     .cell.border-right{border-right:2px solid rgba(255,255,255,0.06)}
     .cell.border-bottom{border-bottom:2px solid rgba(255,255,255,0.06)}
     .cell.wrong{background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(243, 19, 19, 0.527))}
     .cell.highlight{outline:2px solid rgba(255, 0, 255, 0.281)}
     .cell.value-highlight{background-color: rgba(201, 125, 252, 0.253);} 
-    aside{width:300px; max-width:38vw}
+
+    aside{width:300px; max-width:38vw;}
     .panel{background:var(--card); padding:12px; border-radius:12px;}
-    .panel h3{margin:0 0 8px 0; font-size:14px; color:var(--muted)}
+    .panel h3{margin:20px 0 8px 0; font-size:14px; color:var(--muted)}
     .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
-    .numpad{display:grid; grid-template-columns: repeat(3,44px); gap:8px; margin-top:12px}
-    .num{background:transparent; border:1px solid rgba(0, 153, 255, 0.336); padding:8px; border-radius:8px; cursor:pointer}
+    .numpad{
+        display:grid; 
+        grid-template-columns: repeat(3, 44px); /* Kembali ke ukuran tetap untuk numpad desktop */
+        gap:8px; margin-top:12px
+    }
+    .num{background:transparent; border:1px solid rgba(0, 153, 255, 0.336); padding:8px; border-radius:8px; cursor:pointer; font-size: 16px;}
     .status{margin-top:12px; color:var(--muted); font-size:13px}
     .small{font-size:13px; color:var(--muted)}
     footer{margin-top:12px; color:var(--muted); font-size:13px}
-    @media(max-width:880px){.board-wrap{flex-direction:column} aside{width:100%}}
- 
-  </style>
+
+    /* --- MEDIA QUERY: TABLET & MOBILE (Max Width 880px) --- */
+    @media (max-width: 880px) {
+        /* Layout */
+        body { padding: 12px; }
+        .app { max-width: 100%; } /* Ambil lebar penuh di layar sempit */
+        .board-wrap{flex-direction:column; gap: 24px;}
+        
+        /* Header dan Kontrol */
+        header { flex-direction: column; align-items: flex-start; }
+        h1 { margin-bottom: 8px; }
+        .controls { flex-wrap: wrap; justify-content: center; width: 100%; margin-top: 10px; }
+        
+        /* Board */
+        .board {
+            padding: 8px;
+            width: 95vw; 
+            max-width: 500px; /* Batasan maksimum agar tidak terlalu lebar di tablet */
+            margin: 0 auto; 
+        }
+
+        /* GRID: Beralih ke VW di sini */
+        .grid {
+            /* 95vw - (2 * 8px padding) / 9 sel = ~10.4vw. Kita pakai 9.8vw agar aman */
+            grid-template-columns: repeat(9, 9.8vw); 
+            grid-template-rows: repeat(9, 9.8vw);
+            gap: 1px;
+        }
+        .cell {
+            width: 9.8vw; 
+            height: 9.8vw;
+            font-size: 5vw; /* Font responsif di mobile */
+            border-radius: 4px;
+        }
+        
+        /* Aside/Panel */
+        aside{width:100%; max-width: 100%;}
+        
+        /* NUMPAD: Beralih ke 1fr agar memenuhi lebar 100% */
+        .numpad {
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 10px;
+        }
+        .num {
+            padding: 12px 8px; /* Buat tombol numpad lebih besar */
+            font-size: 20px;
+        }
+    }
+</style>
 </head>
 <body>
   <div class="app">
@@ -76,18 +143,19 @@
 
       <aside>
         <div class="panel">
-          <h3>How to play</h3>
-          <div class="small">Fill each row, column and 3x3 box with numbers 1 to 9. Click a cell and choose a number or use keyboard (1–9). Wrong numbers highlight red.</div>
+
+          <div class="status" id="status">Ready</div>
+          <h3 style="margin-top:12px">Numpad</h3>
+          <div class="numpad" id="numpad"></div>
+
           <div class="actions">
             <button id="checkBtn">Check</button>
             <button id="eraseBtn">Erase</button>   
           </div>
-
-          <h3 style="margin-top:12px">Numpad</h3>
-          <div class="numpad" id="numpad"></div>
-
-          <div class="status" id="status">Ready</div>
-          <footer><a href="https://linktr.ee/wangsaguna">More on Linktree</a></footer>
+          <h3>How to play</h3>
+          <div class="small">Fill each row, column and 3x3 box with numbers 1 to 9. Click a cell and choose a number or use keyboard (1–9). Wrong numbers highlight red.</div>
+          
+          <a href="https://linktr.ee/wangsaguna">More on Linktree</a>
         </div>
       </aside>
     </div>
