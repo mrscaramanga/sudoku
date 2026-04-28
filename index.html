@@ -400,14 +400,14 @@
       document.querySelectorAll('.cell').forEach(x=>x.classList.remove('value-highlight'))
     }
 
-    function highlightPeers(r,c){
+    /*function highlightPeers(r,c){
       for(const el of document.querySelectorAll('.cell')){
         const rr=+el.dataset.r, cc=+el.dataset.c
         if(rr===r || cc===c || (Math.floor(rr/3)===Math.floor(r/3) && Math.floor(cc/3)===Math.floor(c/3))){
           el.classList.add('highlight')
         }
       }
-    }
+    }*/
 
    function highlightSameNumber(value) {
     // 1. Hapus SEMUA HIGHLIGHT ANGKA SAMA sebelumnya dan highlight numpad
