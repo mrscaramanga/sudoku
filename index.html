@@ -499,7 +499,7 @@
         if(solutionBoard && val!==0 && solutionBoard[r][c]!==val) wrong=true
       }
       if(filled && !wrong) {
-        statusEl.textContent='Congratulations — solved!' 
+        statusEl.textContent='Game Over' 
         stopTimer() 
         lockBoard();
     }
